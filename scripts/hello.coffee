@@ -50,6 +50,28 @@ module.exports = (robot) ->
                     #{rest_member.join(",")}
                     ```
                 """
+    robot.hear /スキル教えて (.*)/i, (msg) ->
+        champ = msg.match[1]
+        child_process.exec "ruby /app/scripts/get_champ_skills.rb #{champ} \/T", (error, stdout, stderr) ->
+            if !error
+                getChannelFromName msg.message.room (err, id) ->
+                    exec "curl -F file='/tmp/screen_shot.png' -F channels=#{id} -F token=#{process.env.SLACK_API_TOKEN} https://slack.com/api/files.upload", (err, stdout, stderr) ->
+                        if err
+                            return msg.send 'fail'
+
+  getChannelFromName = (channelName, callback) ->
+    slack.api "channels.list", exclude_archived: 1, (err, response) ->
+      if err
+        return callback err
+
+      if !response.ok
+        return callback response.error
+      for val, i in response.channels
+        if val.name == channelName
+          return callback null, val.id
+
+      return callback err 
+
     #robot.respond /.*$/i, (msg) ->
         #summonername = msg.message.text.replace(/lolbot: /, "")
         #console.log(summonername)
